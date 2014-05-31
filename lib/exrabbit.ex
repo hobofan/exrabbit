@@ -106,8 +106,12 @@ defmodule Exrabbit.Utils do
 		:amqp_channel.call channel, basic_publish(exchange: exchange, routing_key: routing_key), amqp_msg(props: pbasic(reply_to: reply_to), payload: message)
 	end
 
-	def rpc(channel, exchange, routing_key, message, reply_to, uuid) do
-		:amqp_channel.call channel, basic_publish(exchange: exchange, routing_key: routing_key), amqp_msg(props: pbasic(reply_to: reply_to, headers: ({"uuid", :longstr, uuid})  ), payload: message)
+	def rpc(channel, exchange, routing_key, message, reply_to, correlation_id) do
+		:amqp_channel.call channel, basic_publish(exchange: exchange, routing_key: routing_key), amqp_msg(props: pbasic(reply_to: reply_to, correlation_id: correlation_id ), payload: message)
+	end
+
+	def rpc_response(channel, exchange, routing_key, message, correlation_id) do
+		:amqp_channel.call channel, basic_publish(exchange: exchange, routing_key: routing_key), amqp_msg(props: pbasic(correlation_id: correlation_id ), payload: message)
 	end
 
 
@@ -207,7 +211,8 @@ defmodule Exrabbit.Utils do
 	end
   
   	def parse_message({basic_deliver(delivery_tag: tag), amqp_msg(props: pbasic(reply_to: nil), payload: payload)}), do: {tag, payload}
-	def parse_message({basic_deliver(delivery_tag: tag), amqp_msg(props: pbasic(reply_to: reply_to), payload: payload)}), do: {tag, payload, reply_to}
+	def parse_message({basic_deliver(delivery_tag: tag), amqp_msg(props: pbasic(reply_to: reply_to, correlation_id: nil), payload: payload)}), do: {tag, payload, reply_to}
+	def parse_message({basic_deliver(delivery_tag: tag), amqp_msg(props: pbasic(reply_to: reply_to, correlation_id: correlation_id), payload: payload)}), do: {tag, payload, reply_to, correlation_id}
 	def parse_message({basic_deliver(delivery_tag: tag), amqp_msg(payload: payload)}), do: {:message,tag, payload}
 	def parse_message(basic_cancel_ok()), do: nil
 	def parse_message(basic_consume_ok()), do: nil
