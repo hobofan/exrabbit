@@ -1,7 +1,7 @@
 require Record
 
 defmodule Exrabbit do
-  use Application.Behaviour
+  use Application
 
   def start(_type, _args) do
     Exrabbit.Supervisor.start_link
@@ -184,7 +184,6 @@ defmodule Exrabbit.Utils do
 		queue_declare_ok(queue: queue) = :amqp_channel.call channel, queue_declare(queue: queue, auto_delete: autodelete, durable: durable)
 		queue
 	end
-	
 
 	def declare_exchange(channel, exchange) do
 		exchange_declare_ok() = :amqp_channel.call channel, exchange.declare(exchange: exchange, type: "fanout", auto_delete: true)
@@ -230,6 +229,11 @@ defmodule Exrabbit.Utils do
 		{:error, :unknown_message}
 	end
 
+	def subscribe(channel, opts = %{queue: queue, noack: noack}) do
+		sub = basic_consume(queue: queue, no_ack: noack)
+		basic_consume_ok(consumer_tag: consumer_tag) = :amqp_channel.subscribe channel, sub, self
+		consumer_tag
+	end
 	def subscribe(channel, queue), do: subscribe(channel, queue, self)
 
 	def subscribe(channel, queue, pid) do
